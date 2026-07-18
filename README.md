@@ -2,6 +2,8 @@
 
 A production-grade **Corrective Retrieval-Augmented Generation (CRAG)** chatbot with advanced query routing, automatic retrieval correction, web search fallback, and comprehensive evaluation framework.
 
+**Dual UI Support**: Streamlit dashboard for development/testing and modern Next.js frontend for production use.
+
 ---
 
 ## 🚀 Key Features
@@ -17,6 +19,8 @@ A production-grade **Corrective Retrieval-Augmented Generation (CRAG)** chatbot 
 - **Automatic Citations**: Metadata-based citation generation from retrieved chunks
 - **LangSmith Tracing**: Comprehensive pipeline monitoring and debugging
 - **Production-Grade**: Modular architecture with comprehensive logging and error handling
+- **FastAPI Backend**: RESTful API for production deployments
+- **Next.js Frontend**: Modern React-based UI with TypeScript and Tailwind CSS
 
 ---
 
@@ -25,9 +29,17 @@ A production-grade **Corrective Retrieval-Augmented Generation (CRAG)** chatbot 
 ```
                     ┌────────────────────────┐
                     │      Streamlit UI      │
-                    │  (CRAG Status Indicators)│
+                    │  (Dev/Test Dashboard)  │
                     └───────────┬────────────┘
-                                │ Query
+                                │
+                    ┌───────────┴────────────┐
+                    ▼                        ▼
+        ┌───────────────────┐    ┌───────────────────┐
+        │   Next.js UI      │    │   FastAPI Backend  │
+        │  (Production)     │    │   (REST API)       │
+        └───────────┬─────────┘    └───────────┬─────────┘
+                    │                          │
+                    └───────────┬──────────────┘
                                 ▼
                     ┌────────────────────────┐
                     │   Query Classifier     │
@@ -88,6 +100,18 @@ A production-grade **Corrective Retrieval-Augmented Generation (CRAG)** chatbot 
 
 ```
 capstone_project/
+├── api/                    # FastAPI REST API backend
+│   ├── __init__.py
+│   └── app.py             # Main FastAPI application with endpoints
+├── frontend/               # Next.js frontend application
+│   ├── src/
+│   │   ├── app/           # Next.js app router pages
+│   │   ├── components/    # React components (ChatTab, DocumentsTab, etc.)
+│   │   ├── lib/           # API client and utilities
+│   │   └── types/         # TypeScript type definitions
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── tailwind.config.ts
 ├── .streamlit/             # Streamlit theme configurations
 ├── config/                 # YAML config and settings loaders
 ├── custom_logging/         # Structured logs with rotation and retries
@@ -124,7 +148,7 @@ capstone_project/
 
 | Component | Technology |
 |---|---|
-| **Language** | Python 3.12+ |
+| **Language** | Python 3.12+ · TypeScript |
 | **Orchestration** | LangChain >= 0.3 · PydanticAI |
 | **CRAG Components** | Custom Retrieval Evaluator · Query Rewriter · Web Searcher · Context Merger |
 | **Embeddings** | HuggingFace BGE — `BAAI/bge-large-en-v1.5` (default, 1024-dim) · `BAAI/bge-small-en-v1.5` (384-dim) — both run **100% locally**, no API key required |
@@ -133,8 +157,10 @@ capstone_project/
 | **Reranking** | `cross-encoder/ms-marco-MiniLM-L-6-v2` (local) |
 | **Web Search** | DuckDuckGo API (no API key required) |
 | **Evaluation** | RAGAS · DeepEval |
-| **UI** | Streamlit · Plotly |
-| **Package Manager** | [uv](https://github.com/astral-sh/uv) |
+| **Backend API** | FastAPI · Uvicorn |
+| **Frontend UI** | Next.js 14 · React 18 · TypeScript · Tailwind CSS · Lucide Icons |
+| **Dev UI** | Streamlit · Plotly |
+| **Package Manager** | [uv](https://github.com/astral-sh/uv) (Python) · npm (Node.js) |
 
 ---
 
@@ -238,9 +264,16 @@ Open `.env` and set the following variables:
 | `LANGCHAIN_API_KEY` | Optional | LangSmith API key for tracing |
 | `LANGCHAIN_TRACING_V2` | Optional | Set to `true` to enable LangSmith traces |
 
+**Frontend Environment Variables** (for Next.js):
+| Variable | Required | Description |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | No | FastAPI backend URL (default: `http://localhost:8000`) |
+
 > **No OpenAI API key is required.** All embeddings run locally via HuggingFace.
 
 ### 4. Running the Application
+
+#### Option 1: Streamlit Dashboard (Development/Testing)
 
 Launch the Streamlit dashboard:
 ```bash
@@ -249,12 +282,82 @@ streamlit run streamlit/app.py
 
 The app will be available at **http://localhost:8501**.
 
+#### Option 2: FastAPI Backend + Next.js Frontend (Production)
+
+Start the FastAPI backend:
+```bash
+uv run uvicorn api.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+The API will be available at **http://localhost:8000** with auto-generated docs at **http://localhost:8000/docs**.
+
+Start the Next.js frontend:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend will be available at **http://localhost:3000**.
+
 ### 5. Running Tests
 
 Run the test suite using `pytest`:
 ```bash
 pytest -v
 ```
+
+---
+
+## 🌐 API Endpoints
+
+The FastAPI backend provides the following REST endpoints:
+
+### Health Check
+```http
+GET /health
+```
+Returns the health status of the RAG pipeline.
+
+### Query
+```http
+POST /query
+Content-Type: application/json
+
+{
+  "query": "What is attention mechanism?",
+  "session_id": "optional-session-id",
+  "mode": "rag",
+  "memory_type": "buffer"
+}
+```
+Returns the answer with citations, confidence score, and retrieval metadata.
+
+### Document Ingestion
+```http
+POST /ingest
+Content-Type: multipart/form-data
+
+file: <PDF file>
+```
+Ingests a PDF document into the vector database.
+
+### API Documentation
+Interactive API documentation available at **http://localhost:8000/docs** (Swagger UI) or **http://localhost:8000/redoc** (ReDoc).
+
+---
+
+## 🎨 Frontend Features
+
+The Next.js frontend provides a modern, responsive UI with:
+
+- **Chat Tab**: Real-time chat interface with message history and context display
+- **Documents Tab**: PDF upload and ingestion interface
+- **Metrics Tab**: Performance metrics and latency visualization
+- **Evaluation Tab**: RAG evaluation metrics dashboard
+- **Settings Sidebar**: Configuration options for embedding models, retrieval strategies, and LLM selection
+- **Dark Theme**: Modern dark mode UI with gradient accents
+- **Responsive Design**: Works on desktop and mobile devices
 
 ---
 
