@@ -1,0 +1,54 @@
+[project]
+name = "crag-rag-system"
+version = "0.1.0"
+description = "Production-Grade CRAG (Corrective RAG) System for Research Paper Q&A"
+requires-python = ">=3.12"
+dependencies = [
+    # Core dependencies
+    "langchain>=0.3.0",
+    "langchain-community>=0.3.0",
+    "langchain-experimental>=0.3.0",
+    "langchain-huggingface>=0.1.0",
+    "langchain-groq>=0.3.0",
+    "langsmith>=0.1.0",
+    # Pydantic & PydanticAI
+    "pydantic>=2.8.0",
+    "pydantic-settings>=2.4.0",
+    "pydantic-ai>=0.0.18",
+    # Vector DB & API Clients
+    "weaviate-client>=4.5.4",
+    "groq>=0.9.0",
+    "sentence-transformers>=3.0.1",
+    "huggingface-hub>=0.23.0",
+    # Document Processing & Data
+    "pypdf>=4.3.0",
+    "pandas>=2.0.0",
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.1",
+    "httpx>=0.27.0",
+    "requests>=2.31.0",
+    # UI
+    "streamlit>=1.37.0",
+    "plotly>=5.22.0",
+    # API
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    # Evaluation
+    "ragas>=0.1.15",
+    "deepeval>=0.21.0",
+    "torchvision>=0.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "black>=24.0.0",
+    "flake8>=7.0.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "black>=24.0.0",
+    "flake8>=7.0.0",
+]
