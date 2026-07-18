@@ -1,0 +1,83 @@
+# -----------------------------------------------------------------------------
+# Research Paper Answer Bot - Global Configuration
+# -----------------------------------------------------------------------------
+
+# Embedding Configuration
+embeddings:
+  default_model: "huggingface"  # Options: "bge", "huggingface"
+  bge:
+    model_name: "BAAI/bge-small-en-v1.5"
+    dimension: 384
+    device: "cpu"  # "cpu" or "cuda"
+  huggingface:
+    model_name: "BAAI/bge-large-en-v1.5"
+    dimension: 1024
+    device: "cpu"  # "cpu" or "cuda"
+
+# Chunking Strategies
+chunking:
+  recursive:
+    chunk_size: 1000
+    chunk_overlap: 200
+  semantic:
+    breakpoint_threshold_type: "percentile"
+    breakpoint_threshold_amount: 0.95
+  parent_child:
+    child_chunk_size: 300
+    child_chunk_overlap: 50
+    parent_chunk_size: 1200
+    parent_chunk_overlap: 200
+  adaptive:
+    min_chunk_size: 200
+    max_chunk_size: 1500
+  section_aware:
+    chunk_size: 1000
+    chunk_overlap: 200
+
+# Weaviate Vector DB Configuration
+weaviate:
+  collection_name: "ResearchPaper"
+  local_host: "localhost"
+  local_port: 8080
+  default_namespace: "default-namespace"
+
+# Retrievers & Reranking Settings
+retrieval:
+  top_k: 20
+  rerank_top_k: 5
+  similarity_threshold: 0.6
+  mmr_lambda: 0.5
+  rerank_score_threshold: 0.0
+  cross_encoder:
+    model_name: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    device: "cpu"
+  multi_query:
+    num_variants: 5
+  bm25:
+    k1: 1.5
+    b: 0.75
+
+# Large Language Model Settings
+llm:
+  default_provider: "groq"
+  groq:
+    default_model: "llama-3.3-70b-versatile"
+    temperature: 0.0
+    max_tokens: 1024
+    timeout: 30.0
+    max_retries: 3
+    supported_models:
+      llama_3_3_70b: "llama-3.3-70b-versatile"
+      deepseek_r1_70b: "deepseek-r1-distill-llama-70b"
+      gemma_2_9b: "gemma2-9b-it"
+      qwen_2_5_coder: "qwen-2.5-coder-32b"
+      mixtral_8x7b: "mixtral-8x7b-32768"
+
+# Evaluation Configuration
+evaluation:
+  sample_size: 5
+  metrics:
+    - "faithfulness"
+    - "context_precision"
+    - "context_recall"
+    - "answer_relevancy"

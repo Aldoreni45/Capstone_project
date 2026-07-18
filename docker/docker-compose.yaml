@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: research_paper_bot
+    ports:
+      - "8501:8501"
+    env_file:
+      - ../.env
+    volumes:
+      # Persistent cache for Sentence Transformers models
+      - huggingface_cache:/root/.cache/huggingface
+      # Volume for storing application logs
+      - app_logs:/app/logs
+    restart: always
+
+volumes:
+  huggingface_cache:
+  app_logs:
