@@ -64,6 +64,14 @@ class QueryClassifier:
                 return True
         return False
     
+    def _contains_greeting_words(self, text: str) -> bool:
+        """Check if text contains greeting words (more lenient check)."""
+        greeting_words = ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]
+        for word in greeting_words:
+            if word in text:
+                return True
+        return False
+    
     def get_response_mode(self, query: str, has_context: bool = False) -> str:
         """
         Determines the response mode based on query classification.

@@ -71,13 +71,34 @@ class GeneralChatHandler:
         """
         query_lower = query.lower().strip()
         
-        # Check for greetings
-        if any(greeting in query_lower for greeting in ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"]):
+        # Check for greetings - use word boundaries to avoid false matches like "hive" containing "hi"
+        import re
+        greeting_patterns = [
+            r'^(hi|hello|hey|greetings|good morning|good afternoon|good evening)',
+            r'^(hi|hello|hey) there',
+            r'^(hi|hello|hey) bro',
+            r'^how are you',
+            r'^what\'s up',
+        ]
+        
+        if self._matches_patterns(query_lower, greeting_patterns):
             return self.handle_greeting(query)
         
-        # Check for identity questions
-        if any(identity in query_lower for identity in ["who are you", "what are you", "your name"]):
+        # Check for identity questions - use word boundaries
+        identity_patterns = [
+            r'^(who are you|what are you)',
+            r'^(your name|what\'s your name)',
+        ]
+        
+        if self._matches_patterns(query_lower, identity_patterns):
             return self.handle_identity(query)
         
         # Handle other small talk
         return self.handle_small_talk(query)
+    
+    def _matches_patterns(self, text: str, patterns: list) -> bool:
+        """Check if text matches any of the regex patterns."""
+        for pattern in patterns:
+            if re.match(pattern, text, re.IGNORECASE):
+                return True
+        return False

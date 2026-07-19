@@ -349,32 +349,47 @@ class RAGPipeline:
                         f"AvgScore={evaluation.avg_score:.3f}, Chunks={len(top_chunks)}"
                     )
                     
-                    # Check answerability - if not answerable, terminate pipeline immediately
+                    # Check answerability - if not answerable, try web search fallback
                     if not evaluation.answerable:
                         app_logger.warning(
-                            f"Retrieval is NOT answerable - terminating pipeline. "
+                            f"Retrieval is NOT answerable - trying web search fallback. "
                             f"Reason: {evaluation.reason}"
                         )
                         
-                        # Return graceful failure message
-                        failure_message = (
-                            "The uploaded documents do not contain sufficient information to answer your question.\n\n"
-                            "The retrieved context cannot answer your query.\n\n"
-                            f"Retrieval Quality: BAD\n"
-                            f"Reason: {evaluation.reason}\n"
-                            f"Confidence: {evaluation.confidence:.1%}\n"
-                            f"Chunks Retrieved: {evaluation.chunk_count}"
-                        )
+                        # Try web search as fallback
+                        try:
+                            with track_latency("web_search"):
+                                web_results = self.web_searcher.search(query, num_results=5)
+                            
+                            if web_results:
+                                web_search_used = True
+                                app_logger.info(f"Web search fallback found {len(web_results)} results")
+                                break  # Exit loop and use web results
+                            else:
+                                app_logger.warning("Web search fallback returned no results")
+                        except Exception as e:
+                            app_logger.error(f"Web search fallback failed: {e}")
                         
-                        return {
-                            "answer": failure_message,
-                            "citations": [],
-                            "confidence": evaluation.confidence,
-                            "retrieval_quality": "BAD",
-                            "retrieval_reason": evaluation.reason,
-                            "query_rewritten": query_rewritten,
-                            "web_search_used": False
-                        }
+                        # If web search failed, return failure message
+                        if not web_results:
+                            failure_message = (
+                                "The uploaded documents do not contain sufficient information to answer your question.\n\n"
+                                "The retrieved context cannot answer your query.\n\n"
+                                f"Retrieval Quality: BAD\n"
+                                f"Reason: {evaluation.reason}\n"
+                                f"Confidence: {evaluation.confidence:.1%}\n"
+                                f"Chunks Retrieved: {evaluation.chunk_count}"
+                            )
+                            
+                            return {
+                                "answer": failure_message,
+                                "citations": [],
+                                "confidence": evaluation.confidence,
+                                "retrieval_quality": "BAD",
+                                "retrieval_reason": evaluation.reason,
+                                "query_rewritten": query_rewritten,
+                                "web_search_used": False
+                            }
                     
                     # Answerable - proceed based on quality classification
                     # GOOD: Proceed normally with pipeline
@@ -392,32 +407,47 @@ class RAGPipeline:
                         break
                     
                     # BAD (edge case): Should not reach here since answerability check handles BAD
-                    # But handle it for safety
+                    # But handle it for safety - try web search fallback
                     if evaluation.quality == "BAD":
                         app_logger.warning(
-                            f"Retrieval quality is BAD - terminating pipeline. "
+                            f"Retrieval quality is BAD - trying web search fallback. "
                             f"Reason: {evaluation.reason}"
                         )
                         
-                        # Return graceful failure message
-                        failure_message = (
-                            "The uploaded documents do not contain sufficient information to answer your question.\n\n"
-                            "No relevant context was found in the indexed corpus.\n\n"
-                            f"Retrieval Quality: BAD\n"
-                            f"Reason: {evaluation.reason}\n"
-                            f"Confidence: {evaluation.confidence:.1%}\n"
-                            f"Chunks Retrieved: {evaluation.chunk_count}"
-                        )
+                        # Try web search as fallback
+                        try:
+                            with track_latency("web_search"):
+                                web_results = self.web_searcher.search(query, num_results=5)
+                            
+                            if web_results:
+                                web_search_used = True
+                                app_logger.info(f"Web search fallback found {len(web_results)} results")
+                                break  # Exit loop and use web results
+                            else:
+                                app_logger.warning("Web search fallback returned no results")
+                        except Exception as e:
+                            app_logger.error(f"Web search fallback failed: {e}")
                         
-                        return {
-                            "answer": failure_message,
-                            "citations": [],
-                            "confidence": evaluation.confidence,
-                            "retrieval_quality": "BAD",
-                            "retrieval_reason": evaluation.reason,
-                            "query_rewritten": query_rewritten,
-                            "web_search_used": False
-                        }
+                        # If web search failed, return failure message
+                        if not web_results:
+                            failure_message = (
+                                "The uploaded documents do not contain sufficient information to answer your question.\n\n"
+                                "No relevant context was found in the indexed corpus.\n\n"
+                                f"Retrieval Quality: BAD\n"
+                                f"Reason: {evaluation.reason}\n"
+                                f"Confidence: {evaluation.confidence:.1%}\n"
+                                f"Chunks Retrieved: {evaluation.chunk_count}"
+                            )
+                            
+                            return {
+                                "answer": failure_message,
+                                "citations": [],
+                                "confidence": evaluation.confidence,
+                                "retrieval_quality": "BAD",
+                                "retrieval_reason": evaluation.reason,
+                                "query_rewritten": query_rewritten,
+                                "web_search_used": False
+                            }
                 
                 # 3. Handle no context case after all attempts
                 if not top_chunks and not web_results:
