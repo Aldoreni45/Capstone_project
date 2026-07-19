@@ -29,6 +29,7 @@ from crag.retrieval_evaluator import RetrievalEvaluator, RetrievalEvaluationResu
 from crag.query_rewriter import QueryRewriter
 from crag.web_search import WebSearcher
 from crag.context_merger import ContextMerger
+from query_understanding import QueryUnderstandingOrchestrator
 from langsmith import traceable
 
 # Load tracing variables
@@ -37,7 +38,7 @@ LangSmithTracker.init_tracing()
 class RAGPipeline:
     """The master pipeline orchestrating documents ingestion, indexing, retrieval, reranking, and generation."""
 
-    def __init__(self):
+    def __init__(self, enable_query_understanding: Optional[bool] = None):
         self.loader = ResearchPaperLoader()
         self.reranker = CrossEncoderReranker()
         self.context_compressor = RuleBasedContextCompressor()
@@ -53,6 +54,36 @@ class RAGPipeline:
         self.query_rewriter = QueryRewriter()
         self.web_searcher = WebSearcher()
         self.context_merger = ContextMerger()
+        
+        # Query Understanding Layer - Read from config
+        if enable_query_understanding is None:
+            enable_query_understanding = settings.get("query_understanding", "enabled", default=True)
+        
+        self.enable_query_understanding = enable_query_understanding
+        if enable_query_understanding:
+            embedding_model_type = settings.get("embeddings", "default_model", default="huggingface")
+            
+            # Read individual step configurations
+            enable_preprocessing = settings.get("query_understanding", "enable_preprocessing", default=True)
+            enable_spell_correction = settings.get("query_understanding", "enable_spell_correction", default=True)
+            enable_normalization = settings.get("query_understanding", "enable_normalization", default=True)
+            enable_semantic_normalization = settings.get("query_understanding", "enable_semantic_normalization", default=True)
+            enable_concept_extraction = settings.get("query_understanding", "enable_concept_extraction", default=True)
+            enable_query_rewriting = settings.get("query_understanding", "enable_query_rewriting", default=True)
+            
+            self.query_understanding = QueryUnderstandingOrchestrator(
+                enable_preprocessing=enable_preprocessing,
+                enable_spell_correction=enable_spell_correction,
+                enable_normalization=enable_normalization,
+                enable_semantic_normalization=enable_semantic_normalization,
+                enable_concept_extraction=enable_concept_extraction,
+                enable_query_rewriting=enable_query_rewriting,
+                embedding_model_type=embedding_model_type
+            )
+            app_logger.info("Query Understanding Layer enabled")
+        else:
+            self.query_understanding = None
+            app_logger.info("Query Understanding Layer disabled")
         
         # Cache of all document chunks loaded in the current app context (used for local BM25 and parent retriever)
         self.session_corpus: List[Any] = []
@@ -150,7 +181,18 @@ class RAGPipeline:
         # 1. Setup metrics and tracker session
         MetricsRegistry.clear()
         
-        # 2. Check if documents are available (both local corpus and Weaviate)
+        # 2. Apply Query Understanding Layer if enabled
+        original_query = query
+        if self.enable_query_understanding and self.query_understanding:
+            with track_latency("query_understanding"):
+                qu_result = self.query_understanding.understand(query)
+                query = qu_result.final_query
+                app_logger.info(
+                    f"Query Understanding: '{original_query}' -> '{query}' "
+                    f"(steps: {len(qu_result.pipeline_steps)}, time: {qu_result.processing_time_ms:.2f}ms)"
+                )
+        
+        # 3. Check if documents are available (both local corpus and Weaviate)
         has_documents = len(self.session_corpus) > 0
         if not has_documents:
             # Also check Weaviate for ingested documents
@@ -164,7 +206,7 @@ class RAGPipeline:
                 app_logger.warning(f"Could not check Weaviate for documents: {e}")
                 has_documents = False
         
-        # 3. Classify query and determine response mode
+        # 4. Classify query and determine response mode
         response_mode = self.query_classifier.get_response_mode(query, has_documents)
         
         app_logger.info(

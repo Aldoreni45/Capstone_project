@@ -2,6 +2,16 @@
 # Research Paper Answer Bot - Global Configuration
 # -----------------------------------------------------------------------------
 
+# Query Understanding Layer Configuration
+query_understanding:
+  enabled: true  # Enable/disable the Query Understanding Layer
+  enable_preprocessing: true  # Enable query preprocessing
+  enable_spell_correction: true  # Enable LLM-based spell correction
+  enable_normalization: true  # Enable query normalization
+  enable_semantic_normalization: false  # Enable semantic normalization (disabled by default to avoid memory issues)
+  enable_concept_extraction: true  # Enable LLM-based concept extraction
+  enable_query_rewriting: true  # Enable enhanced query rewriting
+
 # Embedding Configuration
 embeddings:
   default_model: "huggingface"  # Options: "bge", "huggingface"

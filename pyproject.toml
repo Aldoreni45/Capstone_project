@@ -37,6 +37,7 @@ dependencies = [
     "ragas>=0.1.15",
     "deepeval>=0.21.0",
     "torchvision>=0.28.0",
+    "spacy>=3.8.14",
 ]
 
 [project.optional-dependencies]

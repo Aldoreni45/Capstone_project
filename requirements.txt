@@ -5,6 +5,7 @@ langchain-experimental>=0.3.0
 langchain-huggingface>=0.1.0
 langchain-groq>=0.3.0
 langsmith>=0.1.0
+spacy>=3.8.0
 
 # Pydantic & PydanticAI
 pydantic>=2.8.0
